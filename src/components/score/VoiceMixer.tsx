@@ -21,9 +21,12 @@ export function VoiceMixer({
   onMute,
   onSolo,
 }: VoiceMixerProps) {
+  const displayedVoices = voices.filter(
+    (voice) => voice.label !== "Piano RH" && voice.label !== "Piano LH",
+  );
   return (
     <div className="flex flex-col gap-4">
-      {voices.map((voice) => {
+      {displayedVoices.map((voice) => {
         const state = mixer[voice.id] ?? {
           volume: 0.85,
           muted: false,
