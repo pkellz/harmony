@@ -11,8 +11,9 @@ function Slider({
   value,
   min = 0,
   max = 100,
+  color,
   ...props
-}: React.ComponentProps<typeof SliderPrimitive.Root>) {
+}: React.ComponentProps<typeof SliderPrimitive.Root> & { color?: string }) {
   const _values = React.useMemo(
     () =>
       Array.isArray(value)
@@ -43,6 +44,7 @@ function Slider({
         <SliderPrimitive.Range
           data-slot="slider-range"
           className="bg-primary absolute data-[orientation=horizontal]:h-full"
+          style={color ? { backgroundColor: color } : undefined}
         />
       </SliderPrimitive.Track>
       {Array.from({ length: _values.length }, (_, index) => (
@@ -50,6 +52,7 @@ function Slider({
           data-slot="slider-thumb"
           key={index}
           className="border-primary bg-background ring-ring/50 block size-4 shrink-0 rounded-full border shadow-sm transition-[color,box-shadow] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden"
+          style={color ? { borderColor: color } : undefined}
         />
       ))}
     </SliderPrimitive.Root>

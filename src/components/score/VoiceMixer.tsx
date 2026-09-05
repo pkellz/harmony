@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
+import { VOICE_COLORS } from "@/components/score/voiceColors";
 import type { MixerState } from "@/lib/audio/Scheduler";
 import type { ScoreVoice } from "@/lib/scoreTypes";
 
@@ -62,10 +63,20 @@ function VoiceStrip({
   onMute,
   onSolo,
 }: VoiceStripProps) {
+  const color = VOICE_COLORS[voice.label];
   return (
     <div className="grid gap-2 rounded-lg border p-3 md:grid-cols-[minmax(0,1fr)_2fr_auto] md:items-center">
       <div className="min-w-0">
-        <Label htmlFor={`vol-${voice.id}`}>{voice.label}</Label>
+        <Label htmlFor={`vol-${voice.id}`} className="inline-flex items-center gap-2">
+          {color ? (
+            <span
+              aria-hidden="true"
+              className="inline-block size-2.5 shrink-0 rounded-full"
+              style={{ backgroundColor: color }}
+            />
+          ) : null}
+          {voice.label}
+        </Label>
         <p className="truncate text-xs text-muted-foreground">
           {voice.id}
           {voice.partName ? ` · ${voice.partName}` : ""} · {voice.noteCount} notes
@@ -78,6 +89,7 @@ function VoiceStrip({
         step={0.01}
         value={[state.volume]}
         onValueChange={(values) => onVolume(voice.id, values[0] ?? 0)}
+        color={color}
       />
       <div className="flex gap-2">
         <Button
