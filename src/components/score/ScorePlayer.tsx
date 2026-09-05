@@ -166,7 +166,7 @@ export function ScorePlayer({ score }: ScorePlayerProps) {
         </Card>
       ) : null}
       <div className="flex flex-col gap-2">
-        <ScoreView xml={xml} tempoBpm={tempoBpm} position={position} />
+        <ScoreView xml={xml} tempoBpm={tempoBpm} position={position} voices={score.voices} />
         <PlaybackControls
           ready={ready}
           playing={playing}
