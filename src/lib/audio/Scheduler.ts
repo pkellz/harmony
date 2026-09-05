@@ -33,6 +33,8 @@ export class HarmonyScheduler {
   private events: NoteEvent[] = [];
   private tempoBpm = 120;
   private loaded = false;
+  private duration = 0;
+  private onEnded: (() => void) | null = null;
 
   async load(score: ParsedScore): Promise<void> {
     await this.dispose();
@@ -56,6 +58,7 @@ export class HarmonyScheduler {
     }
 
     const secondsPerQuarter = 60 / this.tempoBpm;
+    let endSeconds = 0;
     for (const event of this.events) {
       const instrument = this.instruments.get(event.voiceId);
       if (!instrument) continue;
@@ -65,9 +68,36 @@ export class HarmonyScheduler {
       Tone.Transport.schedule((time) => {
         instrument.triggerAttackRelease(note, duration, time);
       }, start);
+      endSeconds = Math.max(endSeconds, start + duration);
+    }
+    this.duration = endSeconds;
+    if (endSeconds > 0) {
+      Tone.Transport.scheduleOnce(() => {
+        this.stop();
+        this.onEnded?.();
+      }, endSeconds);
     }
 
     this.loaded = true;
+  }
+
+  setOnEnded(callback: (() => void) | null): void {
+    this.onEnded = callback;
+  }
+
+  getDuration(): number {
+    return this.duration;
+  }
+
+  getPosition(): number {
+    if (!this.Tone) return 0;
+    return Math.min(this.Tone.Transport.seconds, this.duration);
+  }
+
+  seek(seconds: number): void {
+    if (!this.Tone) return;
+    const clamped = Math.min(Math.max(seconds, 0), this.duration);
+    this.Tone.Transport.seconds = clamped;
   }
 
   private async createInstrument(Tone: ToneModule): Promise<Instrument> {
@@ -167,6 +197,7 @@ export class HarmonyScheduler {
     this.gains.clear();
     this.mixer.clear();
     this.events = [];
+    this.duration = 0;
     this.loaded = false;
   }
 }

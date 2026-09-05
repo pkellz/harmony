@@ -11,7 +11,7 @@ export function HomePage() {
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10">
       <header className="flex flex-col gap-2">
         <p className="text-sm uppercase tracking-wide text-muted-foreground">
-          Harmony MVP
+          Harmony
         </p>
         <h1 className="text-3xl font-semibold tracking-tight">
           Practice each voice of a choral score

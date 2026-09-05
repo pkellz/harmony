@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PlaybackControls } from "@/components/score/PlaybackControls";
 import { ScoreView } from "@/components/score/ScoreView";
 import { VoiceMixer } from "@/components/score/VoiceMixer";
 import { apiFetch } from "@/lib/apiClient";
@@ -23,7 +23,11 @@ export function ScorePlayer({ score }: ScorePlayerProps) {
   const [ready, setReady] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [mixer, setMixer] = useState<Record<string, MixerState>>({});
+  const [position, setPosition] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [tempoBpm, setTempoBpm] = useState(120);
   const scheduler = useMemo(() => new HarmonyScheduler(), []);
+  const rafRef = useRef<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -42,6 +46,13 @@ export function ScorePlayer({ score }: ScorePlayerProps) {
           initial[voice.id] = { ...DEFAULT_MIX };
         }
         setMixer(initial);
+        setDuration(scheduler.getDuration());
+        setTempoBpm(parsed.tempoBpm);
+        setPosition(0);
+        scheduler.setOnEnded(() => {
+          setPlaying(false);
+          setPosition(0);
+        });
         setReady(true);
       } catch (err) {
         if (cancelled) return;
@@ -59,20 +70,41 @@ export function ScorePlayer({ score }: ScorePlayerProps) {
     };
   }, [scheduler, score.id]);
 
-  const onPlay = useCallback(() => {
-    scheduler.play();
-    setPlaying(true);
-  }, [scheduler]);
+  useEffect(() => {
+    if (!playing) return;
+    const tick = () => {
+      setPosition(scheduler.getPosition());
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    };
+  }, [playing, scheduler]);
 
-  const onPause = useCallback(() => {
-    scheduler.pause();
-    setPlaying(false);
-  }, [scheduler]);
+  const onPlayPause = useCallback(() => {
+    if (playing) {
+      scheduler.pause();
+      setPlaying(false);
+    } else {
+      scheduler.play();
+      setPlaying(true);
+    }
+  }, [playing, scheduler]);
 
   const onStop = useCallback(() => {
     scheduler.stop();
     setPlaying(false);
+    setPosition(0);
   }, [scheduler]);
+
+  const onSeek = useCallback(
+    (seconds: number) => {
+      scheduler.seek(seconds);
+      setPosition(seconds);
+    },
+    [scheduler],
+  );
 
   const onVolume = useCallback(
     (voiceId: string, volume: number) => {
@@ -117,23 +149,12 @@ export function ScorePlayer({ score }: ScorePlayerProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Playback</CardTitle>
-          <div className="flex gap-2">
-            <Button type="button" disabled={!ready} onClick={onPlay}>
-              {playing ? "Playing" : "Play"}
-            </Button>
-            <Button type="button" variant="secondary" disabled={!ready} onClick={onPause}>
-              Pause
-            </Button>
-            <Button type="button" variant="outline" disabled={!ready} onClick={onStop}>
-              Stop
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {score.voices ? (
+      {score.voices ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Voices</CardTitle>
+          </CardHeader>
+          <CardContent>
             <VoiceMixer
               voices={score.voices}
               mixer={mixer}
@@ -141,12 +162,21 @@ export function ScorePlayer({ score }: ScorePlayerProps) {
               onMute={onMute}
               onSolo={onSolo}
             />
-          ) : (
-            <p className="text-sm text-muted-foreground">No voices detected.</p>
-          )}
-        </CardContent>
-      </Card>
-      <ScoreView xml={xml} />
+          </CardContent>
+        </Card>
+      ) : null}
+      <div className="flex flex-col gap-2">
+        <ScoreView xml={xml} tempoBpm={tempoBpm} position={position} />
+        <PlaybackControls
+          ready={ready}
+          playing={playing}
+          position={position}
+          duration={duration}
+          onPlayPause={onPlayPause}
+          onStop={onStop}
+          onSeek={onSeek}
+        />
+      </div>
     </div>
   );
 }
