@@ -1,0 +1,11 @@
+.cursor
+node_modules
+.next
+out
+.data
+fixtures/omr-out
+.env
+.env.local
+*.tsbuildinfo
+.DS_Store
+npm-debug.log*

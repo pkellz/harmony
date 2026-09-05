@@ -1,0 +1,30 @@
+services:
+  mongo:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite
+    command: azurite-blob --blobHost 0.0.0.0 --blobPort 10000
+    ports:
+      - "10000:10000"
+
+  omr-worker:
+    build:
+      context: .
+      dockerfile: docker/omr.Dockerfile
+    environment:
+      DATABASE_CONNECTION_STRING: mongodb://mongo:27017/harmony
+      AZURE_STORAGE_CONNECTION_STRING: DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;
+      HARMONY_AUDIVERIS_BIN: /usr/local/bin/Audiveris
+      HARMONY_WORKER_POLL_MS: "3000"
+    depends_on:
+      - mongo
+      - azurite
+    restart: unless-stopped
+
+volumes:
+  mongo-data:
