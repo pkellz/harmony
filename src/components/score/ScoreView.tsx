@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { applyVoiceColors } from "@/components/score/voiceColors";
 import type { ScoreVoice } from "@/lib/scoreTypes";
-import { voiceId } from "@/domain/musicxml/parseScore";
 
 type OsmdModule = typeof import("opensheetmusicdisplay");
 type OsmdInstance = InstanceType<OsmdModule["OpenSheetMusicDisplay"]>;
@@ -19,46 +19,6 @@ const EPSILON = 1e-6;
 const MAX_CURSOR_STEPS = 5000;
 const CURSOR_COLOR = "#2563eb";
 const CURSOR_ALPHA = 0.85;
-
-const VOICE_COLORS: Record<string, string> = {
-  Soprano: "#dc2626",
-  Alto: "#2563eb",
-  Tenor: "#ca8a04",
-  Bass: "#16a34a",
-};
-
-function applyVoiceColors(display: OsmdInstance, voices: ScoreVoice[] | undefined): void {
-  if (!voices || voices.length === 0) return;
-
-  const colorById = new Map<string, string>();
-  for (const voice of voices) {
-    const color = VOICE_COLORS[voice.label];
-    if (color) colorById.set(voice.id, color);
-  }
-  if (colorById.size === 0) return;
-
-  const partIdsInOrder = [...new Set(voices.map((v) => v.partId))];
-
-  display.Sheet.Instruments.forEach((instrument, instrumentIndex) => {
-    const fallbackPartId = partIdsInOrder[instrumentIndex];
-    for (const staff of instrument.Staves) {
-      for (const voice of staff.Voices) {
-        const color =
-          colorById.get(voiceId(instrument.IdString, staff.Id, voice.VoiceId)) ??
-          (fallbackPartId
-            ? colorById.get(voiceId(fallbackPartId, staff.Id, voice.VoiceId))
-            : undefined);
-        if (!color) continue;
-        for (const entry of voice.VoiceEntries) {
-          entry.StemColor = color;
-          for (const note of entry.Notes) {
-            note.NoteheadColor = color;
-          }
-        }
-      }
-    }
-  });
-}
 
 // OSMD's cursor bitmap renders at a near-zero size for this content (its own
 // width/height calculation degenerates) and defaults to a negative z-index, so
